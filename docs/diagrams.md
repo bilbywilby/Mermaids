@@ -449,3 +449,197 @@ You can paste any of these into a Markdown file rendered by GitHub, or into merm
 git add docs/diagrams.md git commit -m 
 "docs: add architecture diagrams"
 git push origin docs/new
+
+---
+
+## 11. User Journey Flow
+
+
+
+---
+
+## 11. User Journey Flow
+
+
+---
+
+## 11. User Journey Flow
+mermaid flowchart TB subgraph AUTH["Authentication Layer"] LOGIN["🔑 User Login"] VERIFY{"Verify Credentials?"} TOKEN["Issue JWT Token"] end
+
+subgraph MAIN["Main Application"]
+    DASHBOARD["📊 Dashboard View"]
+    FILTER["Apply Filters"]
+    UPDATE["Update Task Status"]
+    EXPORT["Export JSON"]
+end
+
+subgraph OUTPUT["Output & Export"]
+    PRINT["🖨️ Print Report"]
+    DOWNLOAD["⬇️ Download Config"]
+    SHARE["🔗 Share Link"]
+end
+
+LOGIN --> VERIFY
+VERIFY -->|Valid| TOKEN
+VERIFY -->|Invalid| ERROR["❌ Login Failed<br/>Retry Required"]
+ERROR --> LOGIN
+
+TOKEN --> DASHBOARD
+DASHBOARD --> FILTER
+FILTER -->|Filtered| UPDATE
+FILTER -->|Clear| DASHBOARD
+
+UPDATE --> SUCCESS["✅ State Saved<br/>LocalStorage Synced"]
+SUCCESS --> EXPORT
+EXPORT -->|JSON| DOWNLOAD
+EXPORT -->|Print| PRINT
+EXPORT -->|Link| SHARE
+
+style AUTH fill:#3b82f6,color:#fff
+style MAIN fill:#22c55e,color:#000
+style OUTPUT fill:#a855f7,color:#fff
+style ERROR fill:#dc2626,color:#fff
+style SUCCESS fill:#22c55e,color:#000
+
+---
+
+## 12. Database Schema (Entity Relationship Diagram)
+
+mermaid erDiagram USER ||--o{ TASK : assigns TEAM ||--o{ USER : members TASK ||--o{ MILESTONE : linked TASK { int id PK string name string assignee FK string deadline enum status enum priority int progress string start string category } MILESTONE { int id PK string name date date bool verified } TEAM { int id PK string name string lead FK } FILTER_CONFIG ||--|| USER : belongs FILTER_CONFIG { string user_id FK json member json priority json status json category string last_updated } APP_STATE ||--|| USER : owned APP_STATE { string user_id FK string view_mode string theme datetime last_sync }
+
+note right of TASK
+  SQLite WAL mode
+  Encrypted via SQLCipher
+end note
+
+style USER fill:#3b82f6,color:#fff
+style TASK fill:#22c55e,color:#000
+style MILESTONE fill:#a855f7,color:#fff
+style TEAM fill:#f59e0b,color:#000
+style FILTER_CONFIG fill:#ec4899,color:#fff
+style APP_STATE fill:#14b8a6,color:#fff
+
+---
+
+## 13. API Endpoint Map (REST Routes)
+
+mermaid flowchart LR subgraph CLIENT["Client Layer"] WEB["🌐 Browser / Web App"] MOBILE["📱 Mobile App"] CLI["💻 CLI / Scripts"] end
+
+subgraph API["API Gateway (v1)"]
+    AUTH["/api/auth/*"]
+    TASKS["/api/tasks/*"]
+    FILTERS["/api/filters/*"]
+    EXPORTS["/api/exports/*"]
+end
+
+subgraph BACKEND["Backend Services"]
+    AUTH_SVC["Auth Service"]
+    TASK_SVC["Task Service"]
+    FILTER_SVC["Filter Service"]
+    EXPORT_SVC["Export Service"]
+    CACHE["Redis Cache"]
+end
+
+subgraph STORAGE["Storage Layer"]
+    POSTGRES["PostgreSQL"]
+    REDIS["Redis Cluster"]
+    S3["Amazon S3"]
+end
+
+WEB -->|HTTPS| API
+MOBILE -->|HTTPS| API
+CLI -->|HTTPS| API
+
+AUTH --> AUTH_SVC --> POSTGRES
+TASKS --> TASK_SVC --> POSTGRES
+FILTERS --> FILTER_SVC --> POSTGRES
+EXPORTS --> EXPORT_SVC --> S3
+CACHE -.-> AUTH_SVC
+CACHE -.-> TASK_SVC
+
+style CLIENT fill:#1e293b,color:#fff
+style API fill:#3b82f6,color:#fff
+style BACKEND fill:#a855f7,color:#fff
+style STORAGE fill:#22c55e,color:#000
+
+---
+
+## 14. Security Threat Model (STRIDE)
+
+mermaid flowchart TD subgraph THREATS["🛡️ STRIDE Threat Classification"] SPOOFING["Spoofing
+Weak Passwords, Session Hijacking"] TAMPERING["Tampering
+SQL Injection, XSS"] REPUTATION["Repudiation
+No Audit Logs"] INFO["Info Disclosure
+Verbose Errors, Exposed Endpoints"] DOS["Denial of Service
+Rate Limiting Bypass"] ELEVATION["Privilege Elevation
+Broken ACLs, Role Confusion"] end
+
+subgraph MITIGATIONS["✅ Mitigations Applied"]
+    M1["JWT Short TTL + Refresh"]
+    M2["Parameterized Queries"]
+    M3["Input Sanitization + CSP"]
+    M4["Rate Limits (100 req/min)"]
+    M5["Role-Based Access Control"]
+    M6["Audit Logging Enabled"]
+    M7["Encrypted Storage (SQLCipher)"]
+end
+
+SPOOFING --> M1
+TAMPERING --> M2
+TAMPERING --> M3
+DOS --> M4
+ELEVATION --> M5
+REPUTATION --> M6
+INFO --> M7
+
+style THREATS fill:#ef4444,color:#fff
+style MITIGATIONS fill:#22c55e,color:#000
+
+---
+
+## 15. Deployment Architecture (Infrastructure)
+
+mermaid flowchart TB subgraph EDGE["Edge Layer"] CDN["CloudFlare CDN"] WAF["WAF + DDoS Protection"] end
+
+subgraph LOAD["Load Balancing"]
+    LB["AWS ALB / NGINX<br/>Round Robin"]
+    SSL["SSL Termination TLS 1.3"]
+end
+
+subgraph APP["Application Tier"]
+    NODE["Node.js / Python<br/>Auto-scaling 2-10 instances"]
+    WORKER["Background Workers"]
+end
+
+subgraph DATA["Data Tier"]
+    MASTER["PostgreSQL Primary"]
+    SLAVE["PostgreSQL Replica"]
+    REDIS["Redis Cluster"]
+    S3["Amazon S3"]
+end
+
+subgraph MONITORING["Observability"]
+    PROMETHEUS["Prometheus"]
+    GRAFANA["Grafana"]
+    LOKI["Loki"]
+end
+
+EDGE --> LB
+LB --> SSL
+SSL --> NODE
+NODE --> WORKER
+NODE --> MASTER
+NODE --> REDIS
+WORKER --> SLAVE
+WORKER --> S3
+
+NODE -.->|metrics| PROMETHEUS
+NODE -.->|logs| LOKI
+PROMETHEUS --> GRAFANA
+LOKI --> GRAFANA
+
+style EDGE fill:#3b82f6,color:#fff
+style LOAD fill:#22c55e,color:#000
+style APP fill:#a855f7,color:#fff
+style DATA fill:#f59e0b,color:#000
+style MONITORING fill:#ec4899,color:#fff
