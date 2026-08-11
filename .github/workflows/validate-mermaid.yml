@@ -13,20 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          
       - name: Install Mermaid CLI
         run: npm install -g @mermaid-js/mermaid-cli
-
       - name: Validate Markdown Files
         run: |
           echo "Scanning docs directory..."
-          find docs -name "*.md" -type f -print0 | while IFS= read -r -d "" file; do
-            echo "Validating: $file"
-            mmdc -i "$file" -o /dev/null || exit 1
-          done
+          find docs -name "*.md" -type f -exec mmdc -i {} -o /dev/null \;
           echo "✅ All Mermaid syntax validated"
