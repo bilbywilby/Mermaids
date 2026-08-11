@@ -643,3 +643,257 @@ style LOAD fill:#22c55e,color:#000
 style APP fill:#a855f7,color:#fff
 style DATA fill:#f59e0b,color:#000
 style MONITORING fill:#ec4899,color:#fff
+
+---
+
+## 16. Authentication Sequence (API Flow)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant FE as Frontend
+    participant API as API Gateway
+    participant AUTH as Auth Service
+    participant DB as PostgreSQL
+    participant REDIS as Redis Cache
+
+    U->>FE: Login with credentials
+    FE->>API: POST /auth/login {email, password}
+    API->>AUTH: Forward credentials
+    AUTH->>DB: Validate user record
+    DB-->>AUTH: User found
+    AUTH->>REDIS: Check existing session
+    REDIS-->>AUTH: No active session
+    AUTH->>AUTH: Generate JWT + Refresh Token
+    AUTH->>REDIS: Store session (TTL: 24h)
+    AUTH-->>API: Tokens + User profile
+    API-->>FE: 200 OK {accessToken, refreshToken, user}
+    FE->>U: Store tokens in localStorage
+    FE-->>U: Redirect to Dashboard
+17. C4 Level 1 - System Context
+flowchart TB
+    subgraph PERSON["People"]
+        DEV["Developer<br/>Uses dashboard to manage tasks"]
+        ADMIN["Administrator<br/>Manages team and permissions"]
+    end
+    
+    subgraph SYSTEM["EZ Dashboard System"]
+        WEB_APP["Web Application<br/>React SPA<br/>Port 5173"]
+        API_SERVER["Backend API<br/>Node.js/Python<br/>Port 3000"]
+        DATABASE[(PostgreSQL<br/>Primary Data)]
+        CACHE[(Redis<br/>Session Cache)]
+        STORAGE[S3 Bucket<br/>Export Files]
+    end
+    
+    subgraph SERVICES["External Services"]
+        SMTP[Email Service<br/>SendGrid/SES]
+        ANALYTICS[Analytics<br/>Google/Mixpanel]
+        CDN["CloudFlare<br/>Static Assets"]
+    end
+    
+    DEV -->|"HTTPS"| WEB_APP
+    ADMIN -->|"HTTPS"| WEB_APP
+    
+    WEB_APP -->|"REST API"| API_SERVER
+    WEB_APP -->|"CDN"| CDN
+    
+    API_SERVER -->|"CRUD"| DATABASE
+    API_SERVER -->|"Session/Auth"| CACHE
+    API_SERVER -->|"Async"| STORAGE
+    API_SERVER -->|"Transactional"| SMTP
+    API_SERVER -->|"Tracking"| ANALYTICS
+    
+    style PERSON fill:#3b82f6,color:#fff
+    style SYSTEM fill:#22c55e,color:#000
+    style SERVICES fill:#a855f7,color:#fff
+    style WEB_APP fill:#3b82f6,color:#fff
+    style API_SERVER fill:#a855f7,color:#fff
+    style DATABASE fill:#f59e0b,color:#000
+    style CACHE fill:#f59e0b,color:#000
+    style STORAGE fill:#ec4899,color:#fff
+
+18. C4 Level 2 - Container Diagram
+flowchart TB
+    subgraph CLIENT["Client Side"]
+        SPW["Single Page App<br/>TypeScript + React<br/>Vite Build"]
+        SW["Service Worker<br/>Offline Cache<br/>PWA Support"]
+    end
+    
+    subgraph SERVER["Server Side"]
+        API["API Server<br/>Express/Fastify<br/>Authentication"]
+        WORKER["Background Worker<br/>Task Processing<br/>Email Queues"]
+        SCHEDULER["Scheduler<br/>Cron Jobs<br/>Cleanup Tasks"]
+    end
+    
+    subgraph DATA["Data Layer"]
+        PG_PRIMARY[(PostgreSQL Primary<br/>Tasks, Users, Config)]
+        PG_REPLICA[(PostgreSQL Replica<br/>Read-Only Queries)]
+        REDIS[(Redis<br/>Sessions + Caching)]
+        S3[(Amazon S3<br/>File Storage)]
+    end
+    
+    subgraph MONITORING["Observability"]
+        LOGS[ELK Stack<br/>Log Aggregation]
+        METRICS[Prometheus + Grafana<br/>Performance Metrics]
+        ALERTS[Alert Manager<br/>SLA Monitoring]
+    end
+    
+    SPW -->|"HTTP/WS"| API
+    SPW -->|"Cache"| SW
+    SW -->|"Sync"| API
+    
+    API -->|"Write"| PG_PRIMARY
+    API -->|"Read"| PG_REPLICA
+    API -->|"Session"| REDIS
+    API -->|"Upload"| S3
+    
+    WORKER -->|"Process"| PG_PRIMARY
+    WORKER -->|"Queue"| REDIS
+    WORKER -->|"Store"| S3
+    
+    SCHEDULER -->|"Cron"| PG_PRIMARY
+    
+    API -.->|"Logs"| LOGS
+    API -.->|"Metrics"| METRICS
+    WORKER -.->|"Metrics"| METRICS
+    METRICS -->|"Alerts"| ALERTS
+    
+    style CLIENT fill:#1e293b,color:#fff
+    style SERVER fill:#3b82f6,color:#fff
+    style DATA fill:#22c55e,color:#000
+    style MONITORING fill:#a855f7,color:#fff
+    style SW fill:#3b82f6,color:#fff
+    style API fill:#a855f7,color:#fff
+    style WORKER fill:#f59e0b,color:#000
+
+19. State Diagram - Task Lifecycle
+state diagram-v2
+    [*] --> DRAFT: Create task
+    
+    DRAFT --> TODO: Assign & Schedule
+    DRAFT --> DONE: Quick complete
+    
+    TODO --> IN_PROGRESS: Start work
+    TODO --> REVIEW: Submit for review
+    
+    IN_PROGRESS --> TODO: Pause work
+    IN_PROGRESS --> REVIEW: Complete
+    IN_PROGRESS --> BLOCKED: External dependency
+    
+    BLOCKED --> IN_PROGRESS: Dependency resolved
+    
+    REVIEW --> IN_PROGRESS: Changes requested
+    REVIEW --> DONE: Approved
+    
+    DONE --> [*]: Archive after TTL
+    
+    note right of BLOCKED
+      Transition requires:
+      - Dependency resolved
+      - Auto-notification sent
+    end note
+    
+    note left of DONE
+      Completion criteria:
+      - Progress = 100%
+      - All milestones met
+      - Review approved
+    end note
+    
+    style DRAFT fill:#64748b,color:#fff
+    style TODO fill:#3b82f6,color:#fff
+    style IN_PROGRESS fill:#f59e0b,color:#000
+    style BLOCKED fill:#dc2626,color:#fff
+    style REVIEW fill:#a855f7,color:#fff
+    style DONE fill:#22c55e,color:#000
+
+20. Class Diagram - TypeScript Interfaces
+classDiagram
+    direction TB
+    
+    class Project {
+        +string id
+        +string name
+        +Team[] teamMembers
+        +Task[] tasks
+        +Milestone[] milestones
+        +FilterConfig filters
+        +AppState settings
+        +updateSettings() AppState
+        +exportJSON() string
+        +importJSON(json: string) void
+    }
+    
+    class Task {
+        +string id
+        +string title
+        +string description
+        +User assignee
+        +Priority priority
+        +Category category
+        +Status status
+        +number progress
+        +Date startDate
+        +Date endDate
+        +string[] tags
+        +updateStatus(newStatus: Status): void
+        +setProgress(value: number): void
+        +markComplete(): void
+    }
+    
+    class Team {
+        +string id
+        +string name
+        +User[] members
+        +User leader
+        +addMember(user: User): void
+        +removeMember(userId: string): void
+        +getCapacity(): number
+    }
+    
+    class User {
+        +string id
+        +string username
+        +string email
+        +Role role
+        +string avatarUrl
+        +getAssignedTasks(): Task[]
+        +getCompletedTasks(): Task[]
+    }
+    
+    class Milestone {
+        +string id
+        +string name
+        +Date targetDate
+        +boolean verified
+        +string[] dependencies
+        +verify(): void
+        +getProgress(): number
+    }
+    
+    class FilterConfig {
+        +string userId
+        +enum[] priorityFilters
+        +enum[] statusFilters
+        +enum[] categoryFilters
+        +string[] memberIds
+        +apply(tasks: Task[]): Task[]
+        +saveToStorage(): void
+        +loadFromStorage(): FilterConfig
+    }
+    
+    Project "1" *-- "*" Task
+    Project "1" *-- "*" Team
+    Team "1" *-- "*" User
+    Task "0..1" --> "1" User : assignedTo
+    Task "1" --> "1" Milestone : milestone
+    FilterConfig "1" --> "1" User : createdBy
+    
+    style Project fill:#3b82f6,color:#fff
+    style Task fill:#22c55e,color:#000
+    style Team fill:#a855f7,color:#fff
+    style User fill:#f59e0b,color:#000
+    style Milestone fill:#ec4899,color:#fff
+    style FilterConfig fill:#14b8a6,color:#000
+
