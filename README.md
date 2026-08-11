@@ -1,7 +1,3 @@
-Here's the complete README.md for the bilbywilby/Mermaids repository:# 🐬 Mermaids
-
-A collection of Mermaid architecture diagrams for software projects — rendering natively on GitHub.
-
 ## 📋 About
 
 This repository hosts Mermaid-based diagrams documenting system architecture, data flows, CI pipelines, module dependencies, and more. All diagrams use [Mermaid](https://mermaid.js.org/) syntax and render automatically on GitHub — no external tools or image hosting required.
@@ -101,4 +97,4 @@ Related: ez_dashboard
 
 ---
 
-Copy and paste that directly into your `README.md` file on the `bilbywilby/Mermaids` repo. It includes badges-free clean styling, a full table of contents, usage instructions, contribution guidelines, and a Mermaid syntax cheat sheet — all GitHub-native.
+
